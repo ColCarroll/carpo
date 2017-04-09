@@ -1,3 +1,4 @@
+from collections import namedtuple
 import os
 import sqlite3
 import time
@@ -16,6 +17,16 @@ CREATE_SCHEMA = """
 """
 
 INSERT_SCHEMA = "INSERT INTO notebooks VALUES (?, ?, ?, ?, ?, ?)"
+
+
+def namedtuple_factory(cursor, row):
+    """
+    Usage:
+    con.row_factory = namedtuple_factory
+    """
+    fields = [col[0] for col in cursor.description]
+    Row = namedtuple("Row", fields)
+    return Row(*row)
 
 
 def get_git_repo(notebook_path):
@@ -43,16 +54,18 @@ def sort_git_shas(notebook_path, records, default_branch='master'):
     commits = [c.hexsha for c in repo.iter_commits(default_branch)]
     ordered, not_ordered = [], []
     for record in records:
-        if record[1] in commits:
+        if record.git_sha in commits:
             ordered.append(record)
         else:
             not_ordered.append(record)
 
-    return sorted(ordered, key=lambda record: commits.index(record.sha)), not_ordered
+    return sorted(ordered, key=lambda record: commits.index(record.sha)) + not_ordered
+
 
 def get_default_home():
     """Use user's home directory as a default"""
     return os.path.join(os.path.expanduser('~'), '.carpo.db')
+
 
 class DB(object):
     def __init__(self, path):
@@ -62,6 +75,7 @@ class DB(object):
 
     def __enter__(self):
         self.conn = sqlite3.connect(self.path)
+        self.conn.row_factory = namedtuple_factory
         self.cursor = self.conn.cursor()
         return self.cursor
 
@@ -71,6 +85,7 @@ class DB(object):
 
 
 class Records(object):
+    """Interact with the database"""
     def __init__(self, path):
         self.path = path
         self._db = DB(self.path)
@@ -103,8 +118,9 @@ class Records(object):
         return bool(result)
 
     def list(self, notebook_path, branch='master'):
+        """Get a list of times the notebook has run successfully sorted by git sha, then date"""
         with self._db as cur:
-            cur.execute("SELECT * FROM notebooks WHERE success=1 AND notebook_path=?",
-                        (notebook_path,))
+            cur.execute("""SELECT * FROM notebooks WHERE success=1 AND notebook_path=?
+                        ORDER BY run_date DESC""", (notebook_path,))
             results = cur.fetchall()
         return sort_git_shas(notebook_path, results, default_branch=branch)
