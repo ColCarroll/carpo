@@ -1,3 +1,4 @@
+"""Main command line interface."""
 from collections import namedtuple
 import os
 import time
@@ -6,10 +7,11 @@ import click
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 
-from record import Records, get_default_home
+from .record import Records, get_default_home
 
 
 NotebookRun = namedtuple('NotebookRun', ['path', 'success', 'run_time', 'message'])
+
 
 @click.group()
 def cli():
@@ -67,7 +69,7 @@ def run(notebooks, db_file, force):
     records = Records(db_file)
     if not force:
         notebooks = [nb_path for nb_path in notebooks if not records.already_run(nb_path)]
-    for notebook_path in notebooks:
+    for notebook_path in sorted(notebooks):
         click.secho('Executing {}'.format(os.path.basename(notebook_path)))
         success, run_time, msg = execute_notebook(notebook_path)
         outcome = NotebookRun(notebook_path, success, run_time, msg)
