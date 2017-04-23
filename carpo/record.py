@@ -5,6 +5,7 @@ import os
 import sqlite3
 import time
 
+import click
 from git import Repo, InvalidGitRepositoryError
 from terminaltables import SingleTable
 
@@ -20,6 +21,7 @@ FIELDS = (
     Row('run_date', 'INTEGER', lambda j: datetime.fromtimestamp(j).strftime('%H:%M:%S on %B %d, %Y')),
 )
 FORMATTERS = {field.name: field.formatter for field in FIELDS}
+TABLE_KEYS = ('time', 'run_date', 'git_sha')
 
 CREATE_SCHEMA = "CREATE TABLE notebooks ({})".format(',\n'.join(['{0.name} {0.type}'.format(row) for row in FIELDS]))
 INSERT_SCHEMA = "INSERT INTO notebooks VALUES (?, ?, ?, ?, ?, ?)"
@@ -33,21 +35,23 @@ def dict_factory(cursor, row):
 def format_result(result):
     """Consistent formatting of results"""
     formatted = {}
+    if result.get('success', True):
+        color = 'green'
+    else:
+        color = 'red'
     for key, value in result.items():
-        formatted[key] = FORMATTERS.get(key, str)(value)
+        if key in TABLE_KEYS:
+            formatted[key] = click.style(FORMATTERS.get(key, str)(value), fg=color)
     return formatted
 
 
-def results_to_table(list_of_results):
+def results_to_table(list_of_results, title):
     """Format query results as a table."""
-    if len(list_of_results) == 0:
-        return SingleTable([], title='No Results')
-    title = list_of_results[0].keys()
-    rows = [list(title)]
+    rows = [TABLE_KEYS]
     for result in list_of_results:
         formatted = format_result(result)
-        rows.append([formatted[key] for key in title])
-    return SingleTable(rows)
+        rows.append([formatted[key] for key in rows[0]])
+    return SingleTable(rows, title=title)
 
 
 def get_git_repo(notebook_path):
@@ -148,6 +152,6 @@ class Records(object):
             cur.execute("""SELECT * FROM notebooks WHERE notebook_path=?
                         ORDER BY run_date DESC""", (notebook_path,))
             results = cur.fetchall()
-        table = results_to_table(sort_git_shas(notebook_path, results, default_branch=branch))
-        table.title = notebook_path
+        table = results_to_table(sort_git_shas(notebook_path, results, default_branch=branch),
+                                 title=notebook_path)
         return table.table
