@@ -1,3 +1,4 @@
+"""Main command line interface."""
 from collections import namedtuple
 import os
 import time
@@ -68,7 +69,7 @@ def run(notebooks, db_file, force):
     records = Records(db_file)
     if not force:
         notebooks = [nb_path for nb_path in notebooks if not records.already_run(nb_path)]
-    for notebook_path in notebooks:
+    for notebook_path in sorted(notebooks):
         click.secho('Executing {}'.format(os.path.basename(notebook_path)))
         success, run_time, msg = execute_notebook(notebook_path)
         outcome = NotebookRun(notebook_path, success, run_time, msg)

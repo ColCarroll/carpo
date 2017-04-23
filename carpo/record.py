@@ -1,3 +1,4 @@
+"""Wrapper for database operations."""
 from collections import namedtuple
 import os
 import sqlite3
@@ -20,7 +21,11 @@ INSERT_SCHEMA = "INSERT INTO notebooks VALUES (?, ?, ?, ?, ?, ?)"
 
 
 def namedtuple_factory(cursor, row):
-    """Factory for sqlite3 to produce namedtuples as results"""
+    """Return database results as namedtuples
+
+    Usage:
+    con.row_factory = namedtuple_factory
+    """
     fields = [col[0] for col in cursor.description]
     Row = namedtuple("Row", fields)
     return Row(*row)
@@ -35,7 +40,7 @@ def get_git_repo(notebook_path):
 
 
 def get_git_info(notebook_path):
-    """Fetch sha and root directory name for notebook, if it is checked into git"""
+    """Fetch sha and root directory name for notebook, if it is checked into git."""
     repo = get_git_repo(notebook_path)
     if repo is None:
         return '', ''
@@ -64,7 +69,10 @@ def get_default_home():
 
 
 class DB(object):
+    """Wrapper for sqlite.  Provides context manager and namedtuple iterator."""
+
     def __init__(self, path):
+        """Initialize with path to database file"""
         self.path = path
         self.conn = None
         self.cursor = None
@@ -77,14 +85,16 @@ class DB(object):
         return self.cursor
 
     def __exit__(self, exc_class, exc, traceback):
-        """Define context manager"""
+        """Commit and close connection on exit."""
         self.conn.commit()
         self.conn.close()
 
 
 class Records(object):
     """Interact with the database"""
+
     def __init__(self, path):
+        """Initialize with path to the database."""
         self.path = path
         self._db = DB(self.path)
         self._create_table()

@@ -11,7 +11,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as buff:
 setup(
     name='carpo',
     version='0.1',
-    description='Run and profile Jupyter notebooks from the command line',
+    description='Run, profile, and save Jupyter notebooks from the command line',
     long_description=long_description,
     author='Colin Carroll',
     author_email='colcarroll@gmail.com',
@@ -30,12 +30,10 @@ setup(
     ],
     packages=find_packages(exclude=['test']),
     install_requires=[
-        'click',
-        'nbformat',
-        'nbconvert',
-        'GitPython',
-        'ipykernel',
-        'tabulate'
+        'GitPython>=2.1.3',
+        'nbconvert>=5.1.1',
+        'nbformat>=4.3.0',
+        'Click>=6.7'
     ],
     include_package_data=True,
     entry_points='''

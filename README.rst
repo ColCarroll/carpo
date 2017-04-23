@@ -7,8 +7,16 @@ Carpo
 
 *An irregular satellite of Jupyter.*
 
-A command line utility to run and profile Jupyter notebooks.
+A command line utility to run, profile, and save Jupyter notebooks.
 
+Installation
+============
+Carpo may be installed `from pypi <https://pypi.python.org/pypi/carpo>`_:
+::
+
+    pip install carpo
+
+Tested against python 2.7, 3.4, 3.5, 3.6.
 
 .. |Build Status| image:: https://travis-ci.org/ColCarroll/carpo.svg?branch=master
    :target: https://travis-ci.org/ColCarroll/carpo
