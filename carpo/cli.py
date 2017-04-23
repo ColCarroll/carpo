@@ -1,6 +1,7 @@
 """Main command line interface."""
 from collections import namedtuple
 import os
+import random
 import time
 
 import click
@@ -82,8 +83,7 @@ def run(notebooks, db_file, force):
 @click.option('--db-file', default=get_default_home(),
               help='Location to store results', show_default=True)
 def list(notebooks, db_file):
+    """View status of notebooks"""
     records = Records(db_file)
-    results = []
-    for filename in notebooks:
-        results.extend(records.list(filename))
-    click.secho(str(results, header='keys'))
+    for notebook_path in notebooks:
+        click.secho(records.status(notebook_path))

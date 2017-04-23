@@ -1,12 +1,19 @@
 from codecs import open
 from os import path
 from setuptools import setup, find_packages
+import sys
 
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
 with open(path.join(here, 'README.rst'), encoding='utf-8') as buff:
     long_description = buff.read()
+
+if sys.version_info < (3, 4):
+    ipython_req = 'ipython<6.0'
+else:
+    ipython_req = 'ipython'
+
 
 setup(
     name='carpo',
@@ -33,8 +40,10 @@ setup(
         'Click>=6.7',
         'GitPython>=2.1.3',
         'ipykernel',
+        ipython_req,
         'nbconvert>=5.1.1',
         'nbformat>=4.3.0',
+        'terminaltables',
     ],
     include_package_data=True,
     entry_points='''

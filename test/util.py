@@ -28,7 +28,6 @@ class ProjectManager(object):
     def get_kernelspec(self):
         """Use an available kernelspec for test notebook"""
         for name in find_kernel_specs():
-            print(name)
             if name.startswith('python'):
                 return name
         raise RuntimeError('No python kernel found to run notebooks!')

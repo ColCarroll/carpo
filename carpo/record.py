@@ -1,34 +1,53 @@
 """Wrapper for database operations."""
 from collections import namedtuple
+from datetime import datetime
 import os
 import sqlite3
 import time
 
 from git import Repo, InvalidGitRepositoryError
+from terminaltables import SingleTable
 
 
-CREATE_SCHEMA = """
-    CREATE TABLE notebooks (
-        notebook_path TEXT,
-        git_sha TEXT,
-        git_root TEXT,
-        success INTEGER,
-        time NUMERIC,
-        run_date INTEGER)
-"""
+Row = namedtuple('Row', ['name', 'type', 'formatter'])
 
+FIELDS = (
+    Row('notebook_path', 'TEXT', str),
+    Row('git_sha', 'TEXT', str),
+    Row('git_root', 'TEXT', str),
+    Row('success', 'INTEGER', lambda j: str(bool(j))),
+    Row('time', 'NUMERIC', '{:.2f}s'.format),
+    Row('run_date', 'INTEGER', lambda j: datetime.fromtimestamp(j).strftime('%H:%M:%S on %B %d, %Y')),
+)
+FORMATTERS = {field.name: field.formatter for field in FIELDS}
+
+CREATE_SCHEMA = "CREATE TABLE notebooks ({})".format(',\n'.join(['{0.name} {0.type}'.format(row) for row in FIELDS]))
 INSERT_SCHEMA = "INSERT INTO notebooks VALUES (?, ?, ?, ?, ?, ?)"
 
 
-def namedtuple_factory(cursor, row):
-    """Return database results as namedtuples
+def dict_factory(cursor, row):
+    """Factory to return query results as dictionaries."""
+    return {col[0]: row[idx] for idx, col in enumerate(cursor.description)}
 
-    Usage:
-    con.row_factory = namedtuple_factory
-    """
-    fields = [col[0] for col in cursor.description]
-    Row = namedtuple("Row", fields)
-    return Row(*row)
+
+def format_result(result):
+    """Consistent formatting of results"""
+    formatted = {}
+    for key, value in result.items():
+        formatted[key] = FORMATTERS.get(key, str)(value)
+    return formatted
+
+
+def results_to_table(list_of_results):
+    """Format query results as a table."""
+    if len(list_of_results) == 0:
+        return SingleTable([], title='No Results')
+    title = list_of_results[0].keys()
+    rows = [list(title)]
+    for result in list_of_results:
+        formatted = format_result(result)
+        rows.append([formatted[key] for key in title])
+    return SingleTable(rows)
 
 
 def get_git_repo(notebook_path):
@@ -55,12 +74,12 @@ def sort_git_shas(notebook_path, records, default_branch='master'):
     commits = [c.hexsha for c in repo.iter_commits(default_branch)]
     ordered, not_ordered = [], []
     for record in records:
-        if record.git_sha in commits:
+        if record['git_sha'] in commits:
             ordered.append(record)
         else:
             not_ordered.append(record)
 
-    return sorted(ordered, key=lambda record: commits.index(record.sha)) + not_ordered
+    return sorted(ordered, key=lambda record: commits.index(record['git_sha'])) + not_ordered
 
 
 def get_default_home():
@@ -69,7 +88,7 @@ def get_default_home():
 
 
 class DB(object):
-    """Wrapper for sqlite.  Provides context manager and namedtuple iterator."""
+    """Wrapper for sqlite.  Provides context manager and dictionary iterator."""
 
     def __init__(self, path):
         """Initialize with path to database file"""
@@ -78,9 +97,9 @@ class DB(object):
         self.cursor = None
 
     def __enter__(self):
-        """Define context manager"""
+        """Start context manager with dictionary row factory"""
         self.conn = sqlite3.connect(self.path)
-        self.conn.row_factory = namedtuple_factory
+        self.conn.row_factory = dict_factory
         self.cursor = self.conn.cursor()
         return self.cursor
 
@@ -118,16 +137,17 @@ class Records(object):
         if not git_sha:
             return False
         with self._db as cur:
-            cur.execute("""SELECT 1 FROM notebooks
+            cur.execute("""SELECT * FROM notebooks
                         WHERE success=1 AND notebook_path=? AND git_sha=? LIMIT 1""",
                         (notebook_path, git_sha))
-            result = cur.fetchall()
-        return bool(result)
+            return bool(cur.fetchall())
 
-    def list(self, notebook_path, branch='master'):
+    def status(self, notebook_path, branch='master'):
         """Get a list of times the notebook has run successfully sorted by git sha, then date"""
         with self._db as cur:
-            cur.execute("""SELECT * FROM notebooks WHERE success=1 AND notebook_path=?
+            cur.execute("""SELECT * FROM notebooks WHERE notebook_path=?
                         ORDER BY run_date DESC""", (notebook_path,))
             results = cur.fetchall()
-        return sort_git_shas(notebook_path, results, default_branch=branch)
+        table = results_to_table(sort_git_shas(notebook_path, results, default_branch=branch))
+        table.title = notebook_path
+        return table.table
