@@ -1,4 +1,5 @@
 from click.testing import CliRunner
+from jupyter_client.kernelspec import find_kernel_specs
 
 from carpo.cli import run
 from util import ProjectManager

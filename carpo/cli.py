@@ -86,4 +86,4 @@ def list(notebooks, db_file):
     results = []
     for filename in notebooks:
         results.extend(records.list(filename))
-    click.secho(tabulate(results, header='keys'))
+    click.secho(str(results, header='keys'))

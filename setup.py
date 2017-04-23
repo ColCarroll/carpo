@@ -30,10 +30,11 @@ setup(
     ],
     packages=find_packages(exclude=['test']),
     install_requires=[
+        'Click>=6.7',
         'GitPython>=2.1.3',
+        'ipykernel',
         'nbconvert>=5.1.1',
         'nbformat>=4.3.0',
-        'Click>=6.7'
     ],
     include_package_data=True,
     entry_points='''
