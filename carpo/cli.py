@@ -64,7 +64,8 @@ def log_outcome(outcome):
 @click.argument('notebooks', type=click.Path(), nargs=-1)
 @click.option('--db-file', default=get_default_home(),
               help='Location to store results', show_default=True)
-@click.option('--force', is_flag=True, help='Run notebooks even if they have been run at this sha')
+@click.option('-f', '--force', is_flag=True,
+              help='Run notebooks even if they have been run at this sha')
 def run(notebooks, db_file, force):
     """Try to re-run all notebooks.  Print failures at end."""
     records = Records(db_file)

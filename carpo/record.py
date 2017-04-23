@@ -51,7 +51,7 @@ def results_to_table(list_of_results, title):
     for result in list_of_results:
         formatted = format_result(result)
         rows.append([formatted[key] for key in rows[0]])
-    return SingleTable(rows, title=title)
+    return SingleTable(rows, title=title).table
 
 
 def get_git_repo(notebook_path):
@@ -152,6 +152,5 @@ class Records(object):
             cur.execute("""SELECT * FROM notebooks WHERE notebook_path=?
                         ORDER BY run_date DESC""", (notebook_path,))
             results = cur.fetchall()
-        table = results_to_table(sort_git_shas(notebook_path, results, default_branch=branch),
-                                 title=notebook_path)
-        return table.table
+        return results_to_table(sort_git_shas(notebook_path, results, default_branch=branch),
+                                title=notebook_path)
