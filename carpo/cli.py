@@ -6,10 +6,11 @@ import click
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 
-from record import Records, get_default_home
+from .record import Records, get_default_home
 
 
 NotebookRun = namedtuple('NotebookRun', ['path', 'success', 'run_time', 'message'])
+
 
 @click.group()
 def cli():
@@ -73,3 +74,15 @@ def run(notebooks, db_file, force):
         outcome = NotebookRun(notebook_path, success, run_time, msg)
         records.record_outcome(outcome)
         log_outcome(outcome)
+
+
+@cli.command()
+@click.argument('notebooks', type=click.Path(), nargs=-1)
+@click.option('--db-file', default=get_default_home(),
+              help='Location to store results', show_default=True)
+def list(notebooks, db_file):
+    records = Records(db_file)
+    results = []
+    for filename in notebooks:
+        results.extend(records.list(filename))
+    click.secho(tabulate(results, header='keys'))

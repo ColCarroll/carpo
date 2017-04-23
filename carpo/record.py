@@ -20,10 +20,7 @@ INSERT_SCHEMA = "INSERT INTO notebooks VALUES (?, ?, ?, ?, ?, ?)"
 
 
 def namedtuple_factory(cursor, row):
-    """
-    Usage:
-    con.row_factory = namedtuple_factory
-    """
+    """Factory for sqlite3 to produce namedtuples as results"""
     fields = [col[0] for col in cursor.description]
     Row = namedtuple("Row", fields)
     return Row(*row)
@@ -42,9 +39,8 @@ def get_git_info(notebook_path):
     repo = get_git_repo(notebook_path)
     if repo is None:
         return '', ''
-    basename = os.path.basename(repo.working_dir)
-    sha = repo.commit().hexsha
-    return basename, sha
+    return os.path.basename(repo.working_dir), repo.commit().hexsha
+
 
 def sort_git_shas(notebook_path, records, default_branch='master'):
     """Sort a list of shas on a given branch."""
@@ -74,12 +70,14 @@ class DB(object):
         self.cursor = None
 
     def __enter__(self):
+        """Define context manager"""
         self.conn = sqlite3.connect(self.path)
         self.conn.row_factory = namedtuple_factory
         self.cursor = self.conn.cursor()
         return self.cursor
 
     def __exit__(self, exc_class, exc, traceback):
+        """Define context manager"""
         self.conn.commit()
         self.conn.close()
 
@@ -114,7 +112,6 @@ class Records(object):
                         WHERE success=1 AND notebook_path=? AND git_sha=? LIMIT 1""",
                         (notebook_path, git_sha))
             result = cur.fetchall()
-            print(bool(result))
         return bool(result)
 
     def list(self, notebook_path, branch='master'):
