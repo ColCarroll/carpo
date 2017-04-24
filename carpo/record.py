@@ -135,7 +135,7 @@ class Records(object):
         with self._db as cur:
             cur.execute(INSERT_SCHEMA, result)
 
-    def already_run(self, notebook_path):
+    def last_run(self, notebook_path):
         """Check if a notebook has already run under the given git sha"""
         _, git_sha = get_git_info(notebook_path)
         if not git_sha:
@@ -144,7 +144,7 @@ class Records(object):
             cur.execute("""SELECT * FROM notebooks
                         WHERE success=1 AND notebook_path=? AND git_sha=? LIMIT 1""",
                         (notebook_path, git_sha))
-            return bool(cur.fetchall())
+            return cur.fetchall()
 
     def status(self, notebook_path, branch='master'):
         """Get a list of times the notebook has run successfully sorted by git sha, then date"""

@@ -8,7 +8,7 @@ import click
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 
-from .record import Records, get_default_home
+from .record import Records, get_default_home, results_to_table
 
 
 NotebookRun = namedtuple('NotebookRun', ['path', 'success', 'run_time', 'message'])
@@ -66,24 +66,36 @@ def log_outcome(outcome):
               help='Location to store results', show_default=True)
 @click.option('-f', '--force', is_flag=True,
               help='Run notebooks even if they have been run at this sha')
-def run(notebooks, db_file, force):
+@click.option('-s', '--shuffle', is_flag=True,
+              help='Randomize notebook order (alphabetical otherwise)')
+def run(notebooks, db_file, force, shuffle):
     """Try to re-run all notebooks.  Print failures at end."""
+    if shuffle:
+        notebooks = list(notebooks)
+        random.shuffle(notebooks)
+    else:
+        notebooks = sorted(notebooks)
+
     records = Records(db_file)
-    if not force:
-        notebooks = [nb_path for nb_path in notebooks if not records.already_run(nb_path)]
-    for notebook_path in sorted(notebooks):
-        click.secho('Executing {}'.format(os.path.basename(notebook_path)))
-        success, run_time, msg = execute_notebook(notebook_path)
-        outcome = NotebookRun(notebook_path, success, run_time, msg)
-        records.record_outcome(outcome)
-        log_outcome(outcome)
+    for notebook_path in notebooks:
+        last_run = records.last_run(notebook_path)
+        if len(last_run) > 0 and not force:
+            click.secho('Already ran {}. Rerun with `-f` to run anyways.'.format(notebook_path),
+                        fg='yellow')
+            click.secho(results_to_table(last_run, notebook_path))
+        else:
+            click.secho('Executing {}'.format(os.path.basename(notebook_path)))
+            success, run_time, msg = execute_notebook(notebook_path)
+            outcome = NotebookRun(notebook_path, success, run_time, msg)
+            records.record_outcome(outcome)
+            log_outcome(outcome)
 
 
 @cli.command()
 @click.argument('notebooks', type=click.Path(), nargs=-1)
 @click.option('--db-file', default=get_default_home(),
               help='Location to store results', show_default=True)
-def list(notebooks, db_file):
+def show(notebooks, db_file):
     """View status of notebooks"""
     records = Records(db_file)
     for notebook_path in notebooks:
