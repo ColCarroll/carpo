@@ -139,7 +139,7 @@ class Records(object):
         """Check if a notebook has already run under the given git sha"""
         _, git_sha = get_git_info(notebook_path)
         if not git_sha:
-            return False
+            return []
         with self._db as cur:
             cur.execute("""SELECT * FROM notebooks
                         WHERE success=1 AND notebook_path=? AND git_sha=? LIMIT 1""",
