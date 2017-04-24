@@ -17,7 +17,7 @@ else:
 
 setup(
     name='carpo',
-    version='0.2',
+    version='0.3',
     description='Run, profile, and save Jupyter notebooks from the command line',
     long_description=long_description,
     author='Colin Carroll',
