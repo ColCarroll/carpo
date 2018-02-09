@@ -11,7 +11,7 @@ from nbconvert.preprocessors import ExecutePreprocessor
 from .record import Records, get_default_home, results_to_table
 
 
-NotebookRun = namedtuple('NotebookRun', ['path', 'success', 'run_time', 'message'])
+NotebookRun = namedtuple('NotebookRun', ['path', 'kernel_name', 'success', 'run_time', 'message'])
 
 
 @click.group()
@@ -20,9 +20,9 @@ def cli():
     pass
 
 
-def execute_notebook(notebook_path):
+def execute_notebook(notebook_path, kernel_name):
     """Run and overwrite a notebook file."""
-    executor = ExecutePreprocessor(timeout=-1)
+    executor = ExecutePreprocessor(timeout=-1, kernel_name=kernel_name)
     with open(notebook_path, 'r') as buff:
         notebook = nbformat.read(buff, as_version=nbformat.NO_CONVERT)
     try:
@@ -62,13 +62,14 @@ def log_outcome(outcome):
 
 @cli.command()
 @click.argument('notebooks', type=click.Path(), nargs=-1)
+@click.option('-k', '--kernel-name', help='Name of kernel to use to run notebook.')
 @click.option('--db-file', default=get_default_home(),
               help='Location to store results', show_default=True)
 @click.option('-f', '--force', is_flag=True,
               help='Run notebooks even if they have been run at this sha')
 @click.option('-s', '--shuffle', is_flag=True,
               help='Randomize notebook order (alphabetical otherwise)')
-def run(notebooks, db_file, force, shuffle):
+def run(notebooks, kernel_name, db_file, force, shuffle):
     """Try to re-run all notebooks.  Print failures at end."""
     if shuffle:
         notebooks = list(notebooks)
@@ -78,15 +79,15 @@ def run(notebooks, db_file, force, shuffle):
 
     records = Records(db_file)
     for notebook_path in notebooks:
-        last_run = records.last_run(notebook_path)
+        last_run = records.last_run(notebook_path, kernel_name)
         if len(last_run) > 0 and not force:
             click.secho('Already ran {}. Rerun with `-f` to run anyways.'.format(notebook_path),
                         fg='yellow')
             click.secho(results_to_table(last_run, notebook_path))
         else:
             click.secho('Executing {}'.format(os.path.basename(notebook_path)))
-            success, run_time, msg = execute_notebook(notebook_path)
-            outcome = NotebookRun(notebook_path, success, run_time, msg)
+            success, run_time, msg = execute_notebook(notebook_path, kernel_name)
+            outcome = NotebookRun(notebook_path, kernel_name, success, run_time, msg)
             records.record_outcome(outcome)
             log_outcome(outcome)
 

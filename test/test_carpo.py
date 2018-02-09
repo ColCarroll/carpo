@@ -1,7 +1,7 @@
 from click.testing import CliRunner
 
 from carpo.cli import run
-from util import ProjectManager
+from .util import ProjectManager
 
 
 class TestCarpo(object):
@@ -18,7 +18,7 @@ class TestCarpo(object):
         self.runner = CliRunner()
 
     def run_and_verify(self, nb, expected):
-        result = self.runner.invoke(run, ['--db-file', self.pm.db_file, nb])
+        result = self.runner.invoke(run, ['--db-file', self.pm.db_file, nb, '-k', 'carpo3_6'])
         assert result.exit_code == 0
         assert self.pm.get_output(nb) == expected
 
@@ -29,7 +29,9 @@ class TestCarpo(object):
     def test_executes_multiple(self):
         first_notebook = self.pm.add_nb_with_input('2 * 2')
         second_notebook = self.pm.add_nb_with_input('3 * 3')
-        result = self.runner.invoke(run, ['--db-file', self.pm.db_file, first_notebook, second_notebook])
+        result = self.runner.invoke(
+            run,
+            ['--db-file', self.pm.db_file, first_notebook, second_notebook, '-k', 'carpo3_6'])
         # Now has been executed
         assert result.exit_code == 0
         assert self.pm.get_output(first_notebook) == '4'
@@ -72,5 +74,5 @@ class TestCarpo(object):
         self.run_and_verify(new_nb, '9')
 
         # Unless you force it to
-        self.runner.invoke(run, ['--db-file', self.pm.db_file, '--force', new_nb])
+        self.runner.invoke(run, ['--db-file', self.pm.db_file, '--force', new_nb, '-k', 'carpo3_6'])
         assert self.pm.get_output(new_nb) == '16'

@@ -14,6 +14,7 @@ Row = namedtuple('Row', ['name', 'type', 'formatter'])
 
 FIELDS = (
     Row('notebook_path', 'TEXT', str),
+    Row('kernel_name', 'TEXT', str),
     Row('git_sha', 'TEXT', str),
     Row('git_root', 'TEXT', str),
     Row('success', 'INTEGER', lambda j: str(bool(j))),
@@ -24,7 +25,7 @@ FORMATTERS = {field.name: field.formatter for field in FIELDS}
 TABLE_KEYS = ('time', 'run_date', 'git_sha')
 
 CREATE_SCHEMA = "CREATE TABLE notebooks ({})".format(',\n'.join(['{0.name} {0.type}'.format(row) for row in FIELDS]))
-INSERT_SCHEMA = "INSERT INTO notebooks VALUES (?, ?, ?, ?, ?, ?)"
+INSERT_SCHEMA = "INSERT INTO notebooks VALUES (?, ?, ?, ?, ?, ?, ?)"
 
 
 def dict_factory(cursor, row):
@@ -131,19 +132,21 @@ class Records(object):
         """Insert a named tuple into the database"""
         git_root, git_sha = get_git_info(outcome.path)
         run_date = int(time.time())
-        result = (outcome.path, git_sha, git_root, int(outcome.success), outcome.run_time, run_date)
+        result = (outcome.path, outcome.kernel_name, git_sha, git_root,
+                  int(outcome.success), outcome.run_time, run_date)
         with self._db as cur:
             cur.execute(INSERT_SCHEMA, result)
 
-    def last_run(self, notebook_path):
-        """Check if a notebook has already run under the given git sha"""
+    def last_run(self, notebook_path, kernel_name):
+        """Check if a notebook has already run under the given git sha and kernel"""
         _, git_sha = get_git_info(notebook_path)
         if not git_sha:
             return []
         with self._db as cur:
             cur.execute("""SELECT * FROM notebooks
-                        WHERE success=1 AND notebook_path=? AND git_sha=? LIMIT 1""",
-                        (notebook_path, git_sha))
+                        WHERE success=1 AND notebook_path=? AND kernel_name=? AND git_sha=?
+                        LIMIT 1""",
+                        (notebook_path, kernel_name, git_sha))
             return cur.fetchall()
 
     def status(self, notebook_path, branch='master'):
