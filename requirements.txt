@@ -1,7 +1,7 @@
 appdirs==1.4.3
 appnope==0.1.0
 astroid==1.4.9
-bleach==2.0.0
+bleach==3.3.0
 click==6.7
 coverage==4.3.4
 decorator==4.0.11
