@@ -19,7 +19,7 @@ jsonschema==2.6.0
 jupyter==1.0.0
 jupyter-client==5.0.1
 jupyter-console==5.1.0
-jupyter-core==4.3.0
+jupyter-core==4.11.2
 lazy-object-proxy==1.2.2
 MarkupSafe==1.0
 mccabe==0.6.1
